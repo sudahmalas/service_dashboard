@@ -12,11 +12,24 @@ use Illuminate\Http\Request;
 class QueueAdminController extends Controller
 {
     /**
-     * List message queues with filtering by client, status, and type.
+     * List message queues with filtering by project, client, status, type, and search query.
      */
     public function index(Request $request): JsonResponse
     {
-        $query = MessageQueue::with('client')->orderBy('created_at', 'desc');
+        $query = MessageQueue::with(['client.project'])->orderBy('created_at', 'desc');
+
+        if ($request->filled('project_id')) {
+            $projectId = $request->input('project_id');
+            if ($projectId === 'none') {
+                $query->whereHas('client', function ($q) {
+                    $q->whereNull('project_client_id');
+                });
+            } else {
+                $query->whereHas('client', function ($q) use ($projectId) {
+                    $q->where('project_client_id', $projectId);
+                });
+            }
+        }
 
         if ($request->filled('client_id')) {
             $query->where('client_id', $request->input('client_id'));
@@ -30,6 +43,22 @@ class QueueAdminController extends Controller
             $query->where('type', $request->input('type'));
         }
 
+        if ($request->filled('search')) {
+            $search = trim($request->input('search'));
+            $query->where(function ($q) use ($search) {
+                $q->where('id', 'like', "%{$search}%")
+                    ->orWhereHas('client', function ($cq) use ($search) {
+                        $cq->where('name', 'like', "%{$search}%")
+                            ->orWhere('slug', 'like', "%{$search}%")
+                            ->orWhere('machine_name', 'like', "%{$search}%")
+                            ->orWhereHas('project', function ($pq) use ($search) {
+                                $pq->where('name', 'like', "%{$search}%")
+                                    ->orWhere('code', 'like', "%{$search}%");
+                            });
+                    });
+            });
+        }
+
         $queues = $query->paginate(25);
 
         return response()->json([
@@ -40,6 +69,13 @@ class QueueAdminController extends Controller
                 'last_page' => $queues->lastPage(),
                 'total' => $queues->total(),
                 'per_page' => $queues->perPage(),
+                'stats' => [
+                    'pending' => MessageQueue::where('status', 'pending')->count(),
+                    'dispatched' => MessageQueue::where('status', 'dispatched')->count(),
+                    'synced' => MessageQueue::where('status', 'synced')->count(),
+                    'failed' => MessageQueue::where('status', 'failed')->count(),
+                    'total' => MessageQueue::count(),
+                ],
             ],
         ]);
     }
@@ -49,7 +85,7 @@ class QueueAdminController extends Controller
      */
     public function show(string $id): JsonResponse
     {
-        $queue = MessageQueue::with('client')->findOrFail($id);
+        $queue = MessageQueue::with(['client.project'])->findOrFail($id);
 
         return response()->json([
             'success' => true,
