@@ -3,18 +3,31 @@
 @tailwind utilities;
 
 @layer base {
-    body {
-        @apply bg-slate-950 text-slate-100 font-sans antialiased selection:bg-indigo-500 selection:text-white;
-        font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    :root {
+        --color-surface-base: #080c14;
+        --color-surface-card: #0d1424;
+        --color-surface-elevated: #131c31;
+        --color-surface-subtle: #0a0f1b;
+        --border-subtle: rgba(255, 255, 255, 0.08);
+        --border-interactive: rgba(255, 255, 255, 0.14);
     }
 
-    /* Custom dark scrollbar */
+    body {
+        @apply bg-[#080c14] text-slate-100 font-sans antialiased selection:bg-indigo-500 selection:text-white;
+        font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+        background-image: 
+            radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99, 102, 241, 0.08), transparent 70%),
+            radial-gradient(ellipse 60% 40% at 100% 10%, rgba(14, 165, 233, 0.04), transparent 60%);
+        background-attachment: fixed;
+    }
+
+    /* Crisp, clean dark scrollbar */
     ::-webkit-scrollbar {
         width: 6px;
         height: 6px;
     }
     ::-webkit-scrollbar-track {
-        background: #090d16;
+        background: #080c14;
     }
     ::-webkit-scrollbar-thumb {
         background: #1e293b;
@@ -25,21 +38,91 @@
     }
 }
 
-@layer utilities {
-    .glass-panel {
-        background: rgba(15, 23, 42, 0.75);
-        backdrop-filter: blur(12px);
+@layer components {
+    /* Anti-Slop Card & Panel Surfaces */
+    .card-panel {
+        background: #0d1424;
         border: 1px solid rgba(255, 255, 255, 0.07);
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.35), 0 1px 2px -1px rgba(0, 0, 0, 0.35);
+    }
+
+    .card-elevated {
+        background: #111a2e;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.4), 0 2px 6px -2px rgba(0, 0, 0, 0.3);
+    }
+
+    .card-interactive {
+        background: #0d1424;
+        border: 1px solid rgba(255, 255, 255, 0.07);
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .card-interactive:hover {
+        border-color: rgba(99, 102, 241, 0.35);
+        background: #10182b;
+        transform: translateY(-1px);
+    }
+
+    /* Modern Tactile Status Badges */
+    .badge-base {
+        @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold tracking-tight;
+    }
+
+    .badge-indigo {
+        @apply badge-base bg-indigo-500/10 text-indigo-300 border border-indigo-500/25;
+    }
+
+    .badge-emerald {
+        @apply badge-base bg-emerald-500/10 text-emerald-300 border border-emerald-500/25;
+    }
+
+    .badge-amber {
+        @apply badge-base bg-amber-500/10 text-amber-300 border border-amber-500/25;
+    }
+
+    .badge-rose {
+        @apply badge-base bg-rose-500/10 text-rose-300 border border-rose-500/25;
+    }
+
+    .badge-cyan {
+        @apply badge-base bg-cyan-500/10 text-cyan-300 border border-cyan-500/25;
+    }
+
+    .badge-purple {
+        @apply badge-base bg-purple-500/10 text-purple-300 border border-purple-500/25;
+    }
+
+    .badge-neutral {
+        @apply badge-base bg-slate-800/80 text-slate-300 border border-slate-700/80;
+    }
+
+    /* Buttons with tactile feedback */
+    .btn-primary {
+        @apply px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-sm font-semibold shadow-sm transition-all duration-150 inline-flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100;
+    }
+
+    .btn-secondary {
+        @apply px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 active:bg-slate-700 text-slate-200 hover:text-white border border-slate-800 hover:border-slate-700 text-sm font-medium transition-all duration-150 inline-flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
+    .btn-ghost {
+        @apply px-3 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 text-sm font-medium transition-colors inline-flex items-center gap-1.5 cursor-pointer;
+    }
+
+    .btn-danger {
+        @apply px-3.5 py-2 rounded-xl bg-rose-950/30 hover:bg-rose-900/50 active:bg-rose-900 text-rose-300 border border-rose-800/50 text-sm font-medium transition-all duration-150 inline-flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98];
+    }
+
+    /* Inputs */
+    .input-field {
+        @apply w-full rounded-xl bg-slate-900/90 border border-slate-800 text-sm text-slate-100 placeholder-slate-500 p-2.5 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all duration-150;
+    }
+
+    /* Backwards-compatibility aliases */
+    .glass-panel {
+        @apply card-panel;
     }
     .glass-card {
-        background: linear-gradient(135deg, rgba(30, 41, 59, 0.5) 0%, rgba(15, 23, 42, 0.6) 100%);
-        backdrop-filter: blur(16px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-    .glow-indigo {
-        box-shadow: 0 0 25px -5px rgba(99, 102, 241, 0.25);
-    }
-    .glow-emerald {
-        box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.25);
+        @apply card-panel;
     }
 }

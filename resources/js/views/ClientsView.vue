@@ -6,59 +6,99 @@
         <h1 class="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2">
           <span>Client Management & Provisioning</span>
         </h1>
-        <p class="text-slate-400 text-sm mt-1">
-          Daftar aplikasi klien yang terotorisasi untuk menerima perintah cetak dan input form secara aman.
+        <p class="text-slate-400 text-xs sm:text-sm mt-1">
+          Daftar aplikasi klien dan PC hardware yang terotorisasi untuk menerima perintah cetak secara aman.
         </p>
       </div>
 
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2.5">
         <button
           @click="openCreateModal"
-          class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold shadow-lg shadow-indigo-600/30 transition-all duration-150 flex items-center gap-2 cursor-pointer"
+          class="btn-primary"
         >
           <Plus class="w-4 h-4" />
           <span>Register New Client</span>
         </button>
         <button
-          @click="fetchClients"
+          @click="fetchClients(true)"
           :disabled="loading"
-          class="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 transition-all cursor-pointer"
+          class="btn-secondary !p-2"
+          title="Refresh Data Client"
         >
           <RefreshCw class="w-4 h-4" :class="{ 'animate-spin': loading }" />
         </button>
       </div>
     </div>
 
+    <!-- Search & Scope Filter Toolbar -->
+    <div class="card-panel p-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
+      <!-- Search Input -->
+      <div class="relative w-full sm:w-80">
+        <Search class="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Cari client, node, IP, atau project..."
+          class="w-full pl-9 pr-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
+        />
+      </div>
+
+      <!-- Scope Filter Chips -->
+      <div class="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto">
+        <button
+          @click="scopeFilter = 'all'"
+          class="px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+          :class="scopeFilter === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'"
+        >
+          Semua Scope
+        </button>
+        <button
+          @click="scopeFilter = 'printer_service'"
+          class="px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+          :class="scopeFilter === 'printer_service' ? 'bg-purple-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'"
+        >
+          Printer Service
+        </button>
+        <button
+          @click="scopeFilter = 'prima'"
+          class="px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+          :class="scopeFilter === 'prima' ? 'bg-sky-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'"
+        >
+          Prima
+        </button>
+      </div>
+    </div>
+
     <!-- Client Table Container -->
-    <div class="glass-panel rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+    <div class="card-panel rounded-2xl overflow-hidden shadow-xl">
       <div class="overflow-x-auto">
-        <table class="w-full text-left text-sm text-slate-300">
-          <thead class="bg-slate-900/80 text-xs font-semibold uppercase text-slate-400 border-b border-slate-800">
+        <table class="w-full text-left text-xs sm:text-sm text-slate-300 min-w-[900px]">
+          <thead class="bg-slate-900/90 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800">
             <tr>
-              <th class="px-6 py-4">Client Name & Channel</th>
-              <th class="px-6 py-4">Project / Unit</th>
-              <th class="px-6 py-4">Scope</th>
-              <th class="px-6 py-4">Online Status</th>
-              <th class="px-6 py-4">Hardware Info</th>
-              <th class="px-6 py-4">API Key</th>
-              <th class="px-6 py-4 text-right">Actions</th>
+              <th class="px-5 py-3.5">Client & Channel</th>
+              <th class="px-5 py-3.5">Project / Unit</th>
+              <th class="px-5 py-3.5">Scope</th>
+              <th class="px-5 py-3.5">Status Online</th>
+              <th class="px-5 py-3.5">Hardware Info</th>
+              <th class="px-5 py-3.5">API Key</th>
+              <th class="px-5 py-3.5 text-right">Aksi</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-slate-800/60">
+          <tbody class="divide-y divide-slate-800/60 font-sans">
             <tr v-if="loading && clients.length === 0">
               <td colspan="7" class="px-6 py-12 text-center text-slate-400">
                 <RefreshCw class="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-400" />
-                <span>Memuat data client...</span>
+                <span class="text-xs font-medium">Memuat data client...</span>
               </td>
             </tr>
 
-            <tr v-else-if="clients.length === 0">
+            <tr v-else-if="filteredClients.length === 0">
               <td colspan="7" class="px-6 py-12 text-center text-slate-400">
-                <Cpu class="w-8 h-8 mx-auto mb-2 text-slate-400" />
-                <p>Belum ada client terdaftar.</p>
+                <Cpu class="w-8 h-8 mx-auto mb-2 text-slate-500" />
+                <p class="font-medium text-slate-300 text-xs sm:text-sm">Tidak ada client yang cocok.</p>
                 <button
                   @click="openCreateModal"
-                  class="mt-3 text-xs text-indigo-400 hover:underline"
+                  class="mt-3 text-xs text-indigo-400 hover:underline cursor-pointer"
                 >
                   + Tambah Client Baru Sekarang
                 </button>
@@ -66,38 +106,38 @@
             </tr>
 
             <tr
-              v-for="c in clients"
+              v-for="c in filteredClients"
               :key="c.id"
-              class="hover:bg-slate-900/50 transition-colors duration-150"
+              class="hover:bg-slate-900/50 transition-colors duration-150 group"
             >
               <!-- Name & Slug -->
-              <td class="px-6 py-4">
-                <div class="font-bold text-white text-base">{{ c.name }}</div>
-                <div class="text-xs text-slate-400 font-mono flex items-center gap-1 mt-0.5">
-                  <span class="text-indigo-400">channel:</span>
+              <td class="px-5 py-3.5">
+                <div class="font-bold text-white text-sm">{{ c.name }}</div>
+                <div class="text-[11px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
+                  <span class="text-indigo-400 font-semibold">channel:</span>
                   <span>printer.{{ c.slug }}</span>
                 </div>
               </td>
 
               <!-- Project / Tenant Badge -->
-              <td class="px-6 py-4">
-                <div v-if="c.project" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono font-medium bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+              <td class="px-5 py-3.5">
+                <div v-if="c.project" class="badge-indigo font-mono text-[11px]">
                   <FolderGit2 class="w-3 h-3 text-indigo-400" />
                   <span>{{ c.project.code }}</span>
                 </div>
-                <span v-else class="text-xs text-slate-400 italic">
+                <span v-else class="text-xs text-slate-500 italic">
                   Belum Terhubung
                 </span>
               </td>
 
               <!-- Scope Badge -->
-              <td class="px-6 py-4">
+              <td class="px-5 py-3.5">
                 <span
-                  class="px-2.5 py-1 rounded-lg text-xs font-semibold uppercase font-mono inline-block"
+                  class="text-[10px] font-semibold uppercase font-mono px-2 py-0.5 rounded-md inline-block"
                   :class="{
-                    'bg-purple-500/10 text-purple-300 border border-purple-500/20': c.scope === 'printer_service',
-                    'bg-sky-500/10 text-sky-300 border border-sky-500/20': c.scope === 'prima',
-                    'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20': c.scope === 'all',
+                    'bg-purple-500/10 text-purple-300 border border-purple-500/25': c.scope === 'printer_service',
+                    'bg-sky-500/10 text-sky-300 border border-sky-500/25': c.scope === 'prima',
+                    'bg-emerald-500/10 text-emerald-300 border border-emerald-500/25': c.scope === 'all',
                   }"
                 >
                   {{ c.scope }}
@@ -105,63 +145,63 @@
               </td>
 
               <!-- Online Status & Last Seen -->
-              <td class="px-6 py-4">
+              <td class="px-5 py-3.5">
                 <div class="flex items-center gap-2">
-                  <span class="relative flex h-2.5 w-2.5">
+                  <span class="relative flex h-2 w-2">
                     <span
                       v-if="c.is_online"
                       class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"
                     ></span>
                     <span
-                      class="relative inline-flex rounded-full h-2.5 w-2.5"
-                      :class="c.is_online ? 'bg-emerald-500' : 'bg-slate-600'"
+                      class="relative inline-flex rounded-full h-2 w-2"
+                      :class="c.is_online ? 'bg-emerald-400' : 'bg-slate-600'"
                     ></span>
                   </span>
                   <span
-                    class="font-medium text-xs"
-                    :class="c.is_online ? 'text-emerald-400' : 'text-slate-400'"
+                    class="font-semibold text-xs"
+                    :class="c.is_online ? 'text-emerald-400' : 'text-slate-500'"
                   >
                     {{ c.is_online ? 'Online' : 'Offline' }}
                   </span>
                 </div>
-                <div class="text-[11px] text-slate-400 mt-1">
-                  Last seen: {{ c.last_seen_at }}
+                <div class="text-[10px] text-slate-500 mt-0.5 font-mono">
+                  {{ c.last_seen_at ? c.last_seen_at : 'Belum pernah ping' }}
                 </div>
               </td>
 
               <!-- Hardware Info -->
-              <td class="px-6 py-4">
+              <td class="px-5 py-3.5">
                 <div class="text-xs text-slate-300 font-mono">
-                  <div>{{ c.machine_name || 'No Machine Name' }}</div>
-                  <div class="text-slate-400">{{ c.ip_address || 'No IP' }}</div>
+                  <div>{{ c.machine_name || 'No Machine' }}</div>
+                  <div class="text-slate-500 text-[11px]">{{ c.ip_address || 'No IP' }}</div>
                 </div>
                 <button
                   v-if="c.printers && c.printers.length"
                   @click="openPrintersModal(c)"
-                  class="text-[11px] text-indigo-400 hover:text-indigo-300 mt-1 flex items-center gap-1 cursor-pointer"
+                  class="text-[11px] text-indigo-400 hover:text-indigo-300 mt-1 flex items-center gap-1 cursor-pointer font-medium"
                 >
                   <Printer class="w-3 h-3" />
-                  <span>{{ c.printers.length }} Printer Fisik Terpetakan</span>
+                  <span>{{ c.printers.length }} Printer Fisik</span>
                 </button>
               </td>
 
               <!-- API Key -->
-              <td class="px-6 py-4">
-                <div class="flex items-center gap-2">
-                  <span class="font-mono text-xs bg-slate-900 px-2.5 py-1 rounded-md border border-slate-800 select-all max-w-[150px] truncate text-slate-300">
+              <td class="px-5 py-3.5">
+                <div class="flex items-center gap-1.5">
+                  <span class="font-mono text-xs bg-[#080c14] px-2 py-0.5 rounded border border-slate-800 select-all max-w-[140px] truncate text-slate-300">
                     {{ visibleKeys[c.id] ? c.api_key : maskKey(c.api_key) }}
                   </span>
                   <button
                     @click="toggleKeyVisibility(c.id)"
-                    class="text-slate-400 hover:text-slate-200 p-1"
-                    title="Toggle Visibility"
+                    class="text-slate-400 hover:text-slate-200 p-1 cursor-pointer"
+                    :title="visibleKeys[c.id] ? 'Sembunyikan' : 'Tampilkan'"
                   >
-                    <Eye v-if="!visibleKeys[c.id]" class="w-3.5 h-3.5" />
-                    <EyeOff v-else class="w-3.5 h-3.5" />
+                    <EyeOff v-if="visibleKeys[c.id]" class="w-3.5 h-3.5" />
+                    <Eye v-else class="w-3.5 h-3.5" />
                   </button>
                   <button
-                    @click="copyToClipboard(c.api_key)"
-                    class="text-slate-400 hover:text-indigo-300 p-1"
+                    @click="copyKey(c.api_key)"
+                    class="text-slate-400 hover:text-indigo-300 p-1 cursor-pointer"
                     title="Copy API Key"
                   >
                     <Copy class="w-3.5 h-3.5" />
@@ -170,17 +210,17 @@
               </td>
 
               <!-- Actions -->
-              <td class="px-6 py-4 text-right space-x-2">
+              <td class="px-5 py-3.5 text-right space-x-1.5">
                 <button
                   @click="confirmRegenerateKey(c)"
-                  class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-amber-300 transition-colors"
+                  class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] text-amber-300 transition-colors font-medium cursor-pointer"
                   title="Generate API Key Baru"
                 >
                   New Key
                 </button>
                 <button
                   @click="deleteClient(c)"
-                  class="px-2.5 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/40 text-xs text-rose-300 transition-colors"
+                  class="px-2.5 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/40 text-[11px] text-rose-300 transition-colors font-medium cursor-pointer"
                   title="Hapus Client"
                 >
                   Delete
@@ -193,43 +233,47 @@
     </div>
 
     <!-- Create Client Modal -->
-    <div v-if="showCreateModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-      <div class="glass-panel border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+    <div
+      v-if="showCreateModal"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+      @click.self="showCreateModal = false"
+    >
+      <div class="card-panel border border-slate-700/80 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 bg-[#0d1424]">
         <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-          <h3 class="text-base font-bold text-white flex items-center gap-2">
-            <Plus class="w-5 h-5 text-indigo-400" />
+          <h3 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+            <Plus class="w-4 h-4 text-indigo-400" />
             <span>Register New Client</span>
           </h3>
-          <button @click="showCreateModal = false" class="text-slate-400 hover:text-white">✕</button>
+          <button @click="showCreateModal = false" class="text-slate-400 hover:text-white cursor-pointer">✕</button>
         </div>
 
         <form @submit.prevent="submitCreateClient" class="space-y-4">
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Nama Client</label>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Nama Client</label>
             <input
               type="text"
               v-model="createForm.name"
-              class="w-full rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-100 p-2.5 focus:border-indigo-500"
+              class="input-field"
               placeholder="Contoh: Loket Pendaftaran 2 / Kasir Prima Utama"
               required
             />
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Channel Slug (Opsional)</label>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Channel Slug (Opsional)</label>
             <input
               type="text"
               v-model="createForm.slug"
-              class="w-full rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-100 p-2.5 focus:border-indigo-500"
+              class="input-field font-mono"
               placeholder="Otomatis dari nama (contoh: Loket-Pendaftaran-2)"
             />
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Assigned Scope</label>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Assigned Scope</label>
             <select
               v-model="createForm.scope"
-              class="w-full rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-100 p-2.5 focus:border-indigo-500"
+              class="input-field"
             >
               <option value="printer_service">Printer Service (Hardware Printer Executor)</option>
               <option value="prima">Prima (Business / Input Application)</option>
@@ -238,10 +282,10 @@
           </div>
 
           <div>
-            <label class="block text-xs font-medium text-slate-300 mb-1">Alokasikan ke Project / Unit (Opsional)</label>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Alokasikan ke Project / Unit (Opsional)</label>
             <select
               v-model="createForm.project_client_id"
-              class="w-full rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-100 p-2.5 focus:border-indigo-500"
+              class="input-field"
             >
               <option value="">-- Tanpa Project (Bebas / Unassigned) --</option>
               <option v-for="p in projects" :key="p.id" :value="p.id">
@@ -250,22 +294,22 @@
             </select>
           </div>
 
-          <p class="text-xs text-slate-400 leading-relaxed">
-            API Key acak dengan prefix <code class="text-indigo-300">ps_</code> akan digenerate otomatis saat disimpan.
+          <p class="text-[11px] text-slate-400 leading-relaxed font-mono">
+            API Key acak dengan prefix <code class="text-indigo-300 font-bold">ps_</code> akan digenerate otomatis saat disimpan.
           </p>
 
-          <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+          <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
             <button
               type="button"
               @click="showCreateModal = false"
-              class="px-4 py-2 rounded-xl text-sm text-slate-400 hover:text-slate-200"
+              class="btn-ghost"
             >
               Batal
             </button>
             <button
               type="submit"
               :disabled="saving"
-              class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold shadow-lg shadow-indigo-600/30"
+              class="btn-primary"
             >
               {{ saving ? 'Menyimpan...' : 'Daftarkan Client' }}
             </button>
@@ -275,26 +319,30 @@
     </div>
 
     <!-- Printers Mapping Modal -->
-    <div v-if="selectedClientForPrinters" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-      <div class="glass-panel border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+    <div
+      v-if="selectedClientForPrinters"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+      @click.self="selectedClientForPrinters = null"
+    >
+      <div class="card-panel border border-slate-700/80 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 bg-[#0d1424]">
         <div class="flex items-center justify-between pb-3 border-b border-slate-800">
           <div>
-            <h3 class="text-base font-bold text-white flex items-center gap-2">
-              <Printer class="w-5 h-5 text-indigo-400" />
-              <span>Printer Fisik Terdaftar: {{ selectedClientForPrinters.name }}</span>
+            <h3 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+              <Printer class="w-4 h-4 text-indigo-400" />
+              <span>Printer Fisik: {{ selectedClientForPrinters.name }}</span>
             </h3>
-            <p class="text-xs text-slate-400">Sinkron dari OS Windows via Electron Print Service</p>
+            <p class="text-xs text-slate-400 mt-0.5">Sinkron dari OS Windows via Electron Print Service</p>
           </div>
-          <button @click="selectedClientForPrinters = null" class="text-slate-400 hover:text-white">✕</button>
+          <button @click="selectedClientForPrinters = null" class="text-slate-400 hover:text-white cursor-pointer">✕</button>
         </div>
 
-        <div class="space-y-3 max-h-[350px] overflow-y-auto">
+        <div class="space-y-2.5 max-h-[350px] overflow-y-auto pr-1">
           <div
             v-for="(p, i) in selectedClientForPrinters.printers"
             :key="i"
             class="p-3 rounded-xl border border-slate-800 bg-slate-900/60"
           >
-            <div class="font-semibold text-slate-200 text-sm">
+            <div class="font-semibold text-slate-200 text-xs sm:text-sm">
               {{ p.printer_name || p.os_printer_name }}
             </div>
             <div class="mt-2 flex flex-wrap gap-1">
@@ -316,7 +364,7 @@
         <div class="pt-3 border-t border-slate-800 text-right">
           <button
             @click="selectedClientForPrinters = null"
-            class="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-sm text-slate-300 hover:bg-slate-800"
+            class="btn-secondary"
           >
             Tutup
           </button>
@@ -327,10 +375,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import axios from 'axios';
-import { Plus, RefreshCw, Cpu, Printer, Eye, EyeOff, Copy, FolderGit2 } from 'lucide-vue-next';
+import { Plus, RefreshCw, Cpu, Printer, Eye, EyeOff, Copy, FolderGit2, Search } from 'lucide-vue-next';
+import { useToast } from '../composables/useToast';
 
+const toast = useToast();
 const loading = ref(false);
 const saving = ref(false);
 const clients = ref([]);
@@ -338,12 +388,34 @@ const projects = ref([]);
 const visibleKeys = reactive({});
 const showCreateModal = ref(false);
 const selectedClientForPrinters = ref(null);
+const searchQuery = ref('');
+const scopeFilter = ref('all');
 
 const createForm = reactive({
   name: '',
   slug: '',
   scope: 'printer_service',
   project_client_id: '',
+});
+
+const filteredClients = computed(() => {
+  return clients.value.filter((c) => {
+    // Filter scope
+    if (scopeFilter.value !== 'all' && c.scope !== scopeFilter.value) {
+      return false;
+    }
+    // Filter search query
+    if (searchQuery.value.trim()) {
+      const q = searchQuery.value.toLowerCase();
+      const matchName = c.name?.toLowerCase().includes(q);
+      const matchSlug = c.slug?.toLowerCase().includes(q);
+      const matchMachine = c.machine_name?.toLowerCase().includes(q);
+      const matchIp = c.ip_address?.toLowerCase().includes(q);
+      const matchProject = c.project?.name?.toLowerCase().includes(q) || c.project?.code?.toLowerCase().includes(q);
+      return matchName || matchSlug || matchMachine || matchIp || matchProject;
+    }
+    return true;
+  });
 });
 
 const maskKey = (key) => {
@@ -355,16 +427,16 @@ const toggleKeyVisibility = (id) => {
   visibleKeys[id] = !visibleKeys[id];
 };
 
-const copyToClipboard = async (text) => {
+const copyKey = async (text) => {
   try {
     await navigator.clipboard.writeText(text);
-    alert('API Key disalin ke clipboard!');
+    toast.success('API Key berhasil disalin ke clipboard!');
   } catch (err) {
-    console.error('Failed to copy', err);
+    toast.error('Gagal menyalin API Key.');
   }
 };
 
-const fetchClients = async () => {
+const fetchClients = async (isManual = false) => {
   loading.value = true;
   try {
     const [resClients, resProj] = await Promise.all([
@@ -377,8 +449,14 @@ const fetchClients = async () => {
     if (resProj.data.success) {
       projects.value = resProj.data.data;
     }
+    if (isManual) {
+      toast.success('Data client berhasil diperbarui.');
+    }
   } catch (err) {
     console.error('Failed to fetch clients & projects', err);
+    if (isManual) {
+      toast.error('Gagal memuat data client.');
+    }
   } finally {
     loading.value = false;
   }
@@ -405,10 +483,10 @@ const submitCreateClient = async () => {
     if (res.data.success) {
       showCreateModal.value = false;
       await fetchClients();
-      alert(`Client berhasil didaftarkan!\n\nAPI Key: ${res.data.data.api_key}\n\nHarap simpan API Key ini.`);
+      toast.success(`Client "${res.data.data.name}" berhasil didaftarkan!`);
     }
   } catch (err) {
-    alert('Gagal mendaftarkan client: ' + (err.response?.data?.message || err.message));
+    toast.error('Gagal mendaftarkan client: ' + (err.response?.data?.message || err.message));
   } finally {
     saving.value = false;
   }
@@ -423,10 +501,10 @@ const confirmRegenerateKey = async (client) => {
     if (res.data.success) {
       await fetchClients();
       visibleKeys[client.id] = true;
-      alert(`API Key Baru: ${res.data.data.api_key}`);
+      toast.success('API Key baru berhasil digenerate!');
     }
   } catch (err) {
-    alert('Gagal regenerate key: ' + (err.response?.data?.message || err.message));
+    toast.error('Gagal regenerate key: ' + (err.response?.data?.message || err.message));
   }
 };
 
@@ -438,9 +516,10 @@ const deleteClient = async (client) => {
     const res = await axios.delete(`/api/v1/admin/clients/${client.id}`);
     if (res.data.success) {
       await fetchClients();
+      toast.success(`Client "${client.name}" berhasil dihapus.`);
     }
   } catch (err) {
-    alert('Gagal menghapus client: ' + (err.response?.data?.message || err.message));
+    toast.error('Gagal menghapus client: ' + (err.response?.data?.message || err.message));
   }
 };
 
