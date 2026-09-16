@@ -173,32 +173,31 @@
       </div>
     </div>
 
-    <!-- Queues Table (Anti-Slop Grid) -->
+    <!-- Queues Data Container (Zero Horizontal Scroll, 100% Responsive) -->
     <div class="card-panel rounded-2xl overflow-hidden shadow-xl">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs sm:text-sm text-slate-300 min-w-[1000px]">
-          <thead class="bg-slate-900/90 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800 sticky top-0 z-10">
+      <!-- Desktop & Tablet View (md and up): Fluid Table with 0 horizontal scroll -->
+      <div class="hidden md:block">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-900/90 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800">
             <tr>
-              <th class="px-5 py-3.5 w-[160px]">Queue ID</th>
-              <th class="px-5 py-3.5 w-[220px]">Project / Tenant</th>
-              <th class="px-5 py-3.5 w-[200px]">Target Client / Node</th>
-              <th class="px-5 py-3.5 w-[130px]">Tipe Event</th>
-              <th class="px-5 py-3.5 w-[140px]">Status</th>
-              <th class="px-5 py-3.5 w-[90px] text-center">Retries</th>
-              <th class="px-5 py-3.5">Timestamp (In / Out)</th>
-              <th class="px-5 py-3.5 text-right w-[150px]">Aksi</th>
+              <th class="px-4 py-3.5 w-[18%]">Queue & Tipe</th>
+              <th class="px-4 py-3.5 w-[20%]">Project / Tenant</th>
+              <th class="px-4 py-3.5 w-[24%]">Target Client / Node</th>
+              <th class="px-4 py-3.5 w-[14%]">Status</th>
+              <th class="px-4 py-3.5 w-[14%]">Timestamp</th>
+              <th class="px-4 py-3.5 w-[10%] text-right">Aksi</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-800/60 font-sans">
             <tr v-if="loading && queues.length === 0">
-              <td colspan="8" class="px-6 py-16 text-center text-slate-400">
+              <td colspan="6" class="px-6 py-16 text-center text-slate-400">
                 <RefreshCw class="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-400" />
                 <span class="text-xs font-medium">Memuat data antrian relay...</span>
               </td>
             </tr>
 
             <tr v-else-if="queues.length === 0">
-              <td colspan="8" class="px-6 py-16 text-center text-slate-400">
+              <td colspan="6" class="px-6 py-16 text-center text-slate-400">
                 <Layers class="w-8 h-8 mx-auto mb-3 text-slate-500" />
                 <p class="font-medium text-slate-300 text-sm">Tidak ada antrian yang cocok.</p>
                 <p class="text-xs text-slate-500 mt-1">Coba sesuaikan filter atau lakukan dispatch test dari Overview.</p>
@@ -210,11 +209,10 @@
               :key="q.id"
               class="hover:bg-slate-900/50 transition-colors duration-150 group"
             >
-              <!-- Queue ID -->
-              <td class="px-5 py-3.5 align-top">
-                <div class="flex items-center gap-1.5 font-mono text-xs">
-                  <span class="text-indigo-400 font-bold">{{ q.id.substring(0, 8) }}</span>
-                  <span class="text-slate-600">...</span>
+              <!-- Queue ID & Tipe -->
+              <td class="px-4 py-3.5 align-top">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="font-mono text-xs font-bold text-indigo-400">{{ q.id.substring(0, 8) }}</span>
                   <button
                     @click="copyText(q.id, 'Queue ID')"
                     class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-white transition-opacity p-0.5 cursor-pointer"
@@ -223,106 +221,107 @@
                     <Copy class="w-3 h-3" />
                   </button>
                 </div>
-                <span class="text-[10px] text-slate-500 block mt-0.5 font-mono">UUID v4</span>
+                <div class="mt-1">
+                  <span
+                    class="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold inline-block"
+                    :class="{
+                      'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30': q.type === 'print_label',
+                      'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30': q.type === 'form_submission',
+                      'bg-amber-500/15 text-amber-300 border border-amber-500/30': q.type === 'sync_command',
+                    }"
+                  >
+                    {{ q.type }}
+                  </span>
+                </div>
               </td>
 
               <!-- Project / Tenant Column -->
-              <td class="px-5 py-3.5 align-top">
-                <div v-if="q.client?.project" class="space-y-1">
-                  <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class="badge-indigo font-mono text-[10px]">
-                      <FolderGit2 class="w-2.5 h-2.5 text-indigo-400 shrink-0" />
-                      {{ q.client.project.code }}
-                    </span>
-                  </div>
-                  <p class="text-xs font-semibold text-white truncate max-w-[180px]" :title="q.client.project.name">
+              <td class="px-4 py-3.5 align-top">
+                <div v-if="q.client?.project" class="space-y-0.5">
+                  <span class="badge-indigo font-mono text-[10px]">
+                    <FolderGit2 class="w-2.5 h-2.5 text-indigo-400 shrink-0" />
+                    {{ q.client.project.code }}
+                  </span>
+                  <p class="text-xs font-semibold text-white truncate" :title="q.client.project.name">
                     {{ q.client.project.name }}
                   </p>
                 </div>
-                <div v-else class="flex items-center gap-1.5 text-xs text-slate-500 italic">
+                <div v-else class="text-xs text-slate-500 italic">
                   <span>Tanpa Project</span>
                 </div>
               </td>
 
               <!-- Target Client -->
-              <td class="px-5 py-3.5 align-top">
-                <div class="font-bold text-white text-xs truncate max-w-[180px]" :title="q.client?.name">
+              <td class="px-4 py-3.5 align-top">
+                <div class="font-bold text-white text-xs truncate" :title="q.client?.name">
                   {{ q.client?.name || 'Unknown Client' }}
                 </div>
-                <div class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1 font-mono">
+                <div class="text-[11px] text-slate-400 mt-0.5 font-mono truncate">
                   <span>{{ q.client?.machine_name || 'PC Client' }}</span>
-                  <span v-if="q.client?.ip_address" class="text-slate-500">({{ q.client.ip_address }})</span>
+                  <span v-if="q.client?.ip_address" class="text-slate-500 ml-1">({{ q.client.ip_address }})</span>
                 </div>
-                <div class="text-[10px] text-indigo-400/80 font-mono mt-0.5">
+                <div class="text-[10px] text-indigo-400/80 font-mono mt-0.5 truncate">
                   printer.{{ q.client?.slug || 'unknown' }}
                 </div>
               </td>
 
-              <!-- Type -->
-              <td class="px-5 py-3.5 align-top">
-                <span
-                  class="px-2 py-0.5 rounded text-[11px] font-mono font-semibold inline-block"
-                  :class="{
-                    'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30': q.type === 'print_label',
-                    'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30': q.type === 'form_submission',
-                    'bg-amber-500/15 text-amber-300 border border-amber-500/30': q.type === 'sync_command',
-                  }"
-                >
-                  {{ q.type }}
-                </span>
-              </td>
-
-              <!-- Status -->
-              <td class="px-5 py-3.5 align-top">
-                <span
-                  class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider border font-mono"
-                  :class="{
-                    'badge-amber': q.status === 'pending',
-                    'badge-indigo': q.status === 'dispatched',
-                    'badge-emerald': q.status === 'synced',
-                    'badge-rose': q.status === 'failed',
-                  }"
-                >
+              <!-- Status & Retries -->
+              <td class="px-4 py-3.5 align-top">
+                <div class="flex items-center gap-1.5 flex-wrap">
                   <span
-                    class="w-1.5 h-1.5 rounded-full"
+                    class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border font-mono"
                     :class="{
-                      'bg-amber-400 animate-pulse': q.status === 'pending',
-                      'bg-indigo-400': q.status === 'dispatched',
-                      'bg-emerald-400': q.status === 'synced',
-                      'bg-rose-400': q.status === 'failed',
+                      'badge-amber': q.status === 'pending',
+                      'badge-indigo': q.status === 'dispatched',
+                      'badge-emerald': q.status === 'synced',
+                      'badge-rose': q.status === 'failed',
                     }"
-                  ></span>
-                  <span>{{ q.status }}</span>
-                </span>
-                <div v-if="q.error_message" class="text-[10px] text-rose-400 mt-1 max-w-[160px] truncate" :title="q.error_message">
+                  >
+                    <span
+                      class="w-1.5 h-1.5 rounded-full"
+                      :class="{
+                        'bg-amber-400 animate-pulse': q.status === 'pending',
+                        'bg-indigo-400': q.status === 'dispatched',
+                        'bg-emerald-400': q.status === 'synced',
+                        'bg-rose-400': q.status === 'failed',
+                      }"
+                    ></span>
+                    <span>{{ q.status }}</span>
+                  </span>
+                  <span v-if="q.retry_count > 0" class="text-[10px] font-mono font-bold text-amber-400">
+                    {{ q.retry_count }}x
+                  </span>
+                </div>
+                <div v-if="q.error_message" class="text-[10px] text-rose-400 mt-1 truncate" :title="q.error_message">
                   {{ q.error_message }}
                 </div>
               </td>
 
-              <!-- Retries -->
-              <td class="px-5 py-3.5 align-top text-center font-mono text-xs">
-                <span :class="q.retry_count > 0 ? 'text-amber-400 font-bold' : 'text-slate-500'">
-                  {{ q.retry_count }}x
-                </span>
-              </td>
-
               <!-- Timestamp -->
-              <td class="px-5 py-3.5 align-top text-[11px] text-slate-300 font-mono space-y-0.5">
-                <div><span class="text-slate-500">In:</span> {{ formatTimestamp(q.created_at) }}</div>
-                <div v-if="q.synced_at" class="text-emerald-400">
-                  <span class="text-emerald-600">Out:</span> {{ formatTimestamp(q.synced_at) }}
+              <td class="px-4 py-3.5 align-top font-mono text-[11px]">
+                <div class="flex items-center gap-1 text-slate-300">
+                  <span class="text-[8px] font-bold text-slate-500 uppercase px-1 py-0.5 rounded bg-slate-900 border border-slate-800/80">IN</span>
+                  <span class="text-[10px] sm:text-[11px]">{{ formatTimestamp(q.created_at) }}</span>
+                </div>
+                <div v-if="q.synced_at" class="flex items-center gap-1 text-emerald-400 mt-1">
+                  <span class="text-[8px] font-bold text-emerald-400 uppercase px-1 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">OUT</span>
+                  <span class="text-[10px] sm:text-[11px]">{{ formatTimestamp(q.synced_at) }}</span>
+                </div>
+                <div v-else-if="q.status === 'pending'" class="flex items-center gap-1 text-amber-400/80 mt-1">
+                  <span class="text-[8px] font-bold text-amber-400 uppercase px-1 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">OUT</span>
+                  <span class="text-[9px] italic">menunggu...</span>
                 </div>
               </td>
 
               <!-- Actions -->
-              <td class="px-5 py-3.5 align-top text-right">
+              <td class="px-4 py-3.5 align-top text-right whitespace-nowrap">
                 <div class="flex items-center justify-end gap-1.5">
                   <button
                     @click="inspectPayload(q)"
                     class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 hover:text-white transition-colors inline-flex items-center gap-1 cursor-pointer font-medium"
                     title="Periksa Detail Payload"
                   >
-                    <Eye class="w-3.5 h-3.5" />
+                    <Eye class="w-3.5 h-3.5 text-indigo-400" />
                     <span>Detail</span>
                   </button>
                   <button
@@ -336,7 +335,7 @@
                   </button>
                   <button
                     @click="deleteQueue(q.id)"
-                    class="p-1 rounded-lg bg-slate-900 hover:bg-rose-950/50 border border-slate-800 hover:border-rose-900/50 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+                    class="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-950/50 border border-slate-800 hover:border-rose-900/50 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
                     title="Hapus Antrian"
                   >
                     <Trash2 class="w-3.5 h-3.5" />
@@ -346,6 +345,88 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Mobile Card List View (< md): High-Density Clean Cards -->
+      <div class="md:hidden divide-y divide-slate-800/60">
+        <div v-if="loading && queues.length === 0" class="p-8 text-center text-slate-400 text-xs">
+          <RefreshCw class="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-400" />
+          <span>Memuat antrian...</span>
+        </div>
+
+        <div v-else-if="queues.length === 0" class="p-8 text-center text-slate-400 text-xs">
+          Tidak ada antrian yang cocok.
+        </div>
+
+        <div
+          v-for="q in queues"
+          :key="q.id"
+          class="p-4 space-y-2.5 bg-slate-900/40 hover:bg-slate-900/70 transition-colors"
+        >
+          <!-- Card Header -->
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="font-mono text-xs font-bold text-indigo-400">{{ q.id.substring(0, 8) }}</span>
+              <span
+                class="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold"
+                :class="{
+                  'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30': q.type === 'print_label',
+                  'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30': q.type === 'form_submission',
+                  'bg-amber-500/15 text-amber-300 border border-amber-500/30': q.type === 'sync_command',
+                }"
+              >
+                {{ q.type }}
+              </span>
+            </div>
+            <span
+              class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border font-mono"
+              :class="{
+                'badge-amber': q.status === 'pending',
+                'badge-indigo': q.status === 'dispatched',
+                'badge-emerald': q.status === 'synced',
+                'badge-rose': q.status === 'failed',
+              }"
+            >
+              <span class="w-1.5 h-1.5 rounded-full" :class="q.status === 'synced' ? 'bg-emerald-400' : 'bg-amber-400'"></span>
+              <span>{{ q.status }}</span>
+            </span>
+          </div>
+
+          <!-- Project & Target -->
+          <div class="text-xs space-y-1">
+            <div v-if="q.client?.project" class="flex items-center gap-1.5">
+              <span class="badge-indigo font-mono text-[9px]">{{ q.client.project.code }}</span>
+              <span class="text-slate-300 font-semibold truncate">{{ q.client.project.name }}</span>
+            </div>
+            <div class="text-slate-400 font-mono text-[11px]">
+              Target: <span class="text-white font-semibold">{{ q.client?.name || 'Unknown' }}</span>
+              <span v-if="q.client?.machine_name"> ({{ q.client.machine_name }})</span>
+            </div>
+          </div>
+
+          <!-- Timestamps & Actions -->
+          <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2 text-[10px] font-mono text-slate-400">
+            <div>
+              <span>In: {{ formatTimestamp(q.created_at) }}</span>
+              <span v-if="q.synced_at" class="text-emerald-400 ml-2">• Out: {{ formatTimestamp(q.synced_at) }}</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button
+                @click="inspectPayload(q)"
+                class="px-2 py-1 rounded bg-slate-800 text-slate-300 hover:text-white"
+              >
+                Detail
+              </button>
+              <button
+                @click="resendQueue(q)"
+                :disabled="resendingId === q.id"
+                class="px-2 py-1 rounded bg-indigo-600 text-white"
+              >
+                Resend
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Pagination Bar -->
@@ -511,8 +592,13 @@ const formatTimestamp = (ts) => {
   if (!ts) return '-';
   try {
     const d = new Date(ts);
-    return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) + ' ' +
-      d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const day = String(d.getDate()).padStart(2, '0');
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+    const month = months[d.getMonth()];
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const seconds = String(d.getSeconds()).padStart(2, '0');
+    return `${day} ${month} ${hours}:${minutes}:${seconds}`;
   } catch {
     return ts;
   }

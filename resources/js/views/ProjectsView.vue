@@ -73,201 +73,332 @@
       </div>
     </div>
 
-    <!-- Projects List Cards -->
-    <div v-if="loading && projects.length === 0" class="card-panel rounded-2xl p-16 text-center text-slate-400">
-      <RefreshCw class="w-7 h-7 animate-spin mx-auto mb-3 text-indigo-400" />
-      <span class="text-sm font-medium">Memuat data project & tenant...</span>
-    </div>
+    <!-- Search & Filter Controls -->
+    <div class="card-panel p-3.5 sm:p-4 rounded-2xl">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <!-- Search Input -->
+        <div class="relative w-full sm:flex-1">
+          <Search class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="input-field pl-10 pr-4 w-full text-xs"
+            placeholder="Cari nama project, kode tenant, deskripsi, atau API key..."
+          />
+        </div>
 
-    <div v-else-if="projects.length === 0" class="card-panel rounded-2xl p-16 text-center text-slate-400">
-      <div class="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto mb-3 text-slate-500">
-        <FolderGit2 class="w-6 h-6 text-indigo-400" />
+        <!-- Status Filter Pills -->
+        <div class="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 shrink-0">
+          <button
+            v-for="s in [
+              { key: 'all', label: 'Semua Status' },
+              { key: 'active', label: 'Active' },
+              { key: 'inactive', label: 'Inactive' },
+            ]"
+            :key="s.key"
+            @click="statusFilter = s.key"
+            class="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap"
+            :class="statusFilter === s.key ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800'"
+          >
+            {{ s.label }}
+          </button>
+        </div>
       </div>
-      <h3 class="text-base font-bold text-slate-200">Belum ada project client terdaftar</h3>
-      <p class="text-xs text-slate-400 max-w-md mx-auto mt-1 leading-relaxed">
-        Daftarkan aplikasi klien (seperti Prima Inventaris atau Prima CSSD) agar dapat menggunakan printer fisik yang dialokasikan.
-      </p>
-      <button
-        @click="openCreateModal"
-        class="btn-primary mt-4 text-xs"
-      >
-        <Plus class="w-3.5 h-3.5" />
-        <span>Daftarkan Project Pertama</span>
-      </button>
     </div>
 
-    <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-5">
-      <div
-        v-for="project in projects"
-        :key="project.id"
-        class="card-panel rounded-2xl p-5 sm:p-6 flex flex-col justify-between transition-all duration-200 hover:border-slate-700"
-      >
-        <div>
-          <!-- Card Header: Title, Code, & Actions -->
-          <div class="flex items-start justify-between gap-3">
-            <div class="space-y-1 min-w-0">
-              <div class="flex items-center gap-2 flex-wrap">
-                <h3 class="text-base sm:text-lg font-bold text-white tracking-tight truncate">{{ project.name }}</h3>
-                <span class="badge-indigo font-mono text-[11px]">
-                  {{ project.code }}
-                </span>
+    <!-- Projects List Table Container (Zero Horizontal Scroll, 100% Fluid) -->
+    <div class="card-panel rounded-2xl overflow-hidden shadow-xl">
+      <!-- Desktop & Tablet View (md and up): Fluid Table -->
+      <div class="hidden md:block">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-900/90 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800">
+            <tr>
+              <th class="px-4 py-3.5 w-[26%]">Project / Tenant</th>
+              <th class="px-4 py-3.5 w-[14%]">Status</th>
+              <th class="px-4 py-3.5 w-[24%]">Alokasi Hardware & Kuota</th>
+              <th class="px-4 py-3.5 w-[18%]">Project API Key</th>
+              <th class="px-4 py-3.5 w-[18%] text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800/60 font-sans">
+            <!-- Loading State -->
+            <tr v-if="loading && projects.length === 0">
+              <td colspan="5" class="px-6 py-16 text-center text-slate-400">
+                <RefreshCw class="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-400" />
+                <span class="text-xs font-medium">Memuat data project & tenant...</span>
+              </td>
+            </tr>
+
+            <!-- Empty State -->
+            <tr v-else-if="filteredProjects.length === 0">
+              <td colspan="5" class="px-6 py-16 text-center text-slate-400">
+                <FolderGit2 class="w-8 h-8 mx-auto mb-3 text-slate-500" />
+                <p class="font-medium text-slate-300 text-sm">Tidak ada project yang cocok.</p>
+                <p class="text-xs text-slate-500 mt-1">Coba sesuaikan kata kunci pencarian atau daftarkan project baru.</p>
+                <button
+                  v-if="projects.length === 0"
+                  @click="openCreateModal"
+                  class="btn-primary mt-4 text-xs"
+                >
+                  <Plus class="w-3.5 h-3.5" />
+                  <span>Daftarkan Project Pertama</span>
+                </button>
+              </td>
+            </tr>
+
+            <!-- Table Rows -->
+            <tr
+              v-for="project in filteredProjects"
+              :key="project.id"
+              class="hover:bg-slate-900/50 transition-colors duration-150 group"
+            >
+              <!-- Project & Code -->
+              <td class="px-4 py-3.5 align-top">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-bold text-white text-sm truncate" :title="project.name">
+                    {{ project.name }}
+                  </span>
+                  <span class="badge-indigo font-mono text-[10px]">
+                    {{ project.code }}
+                  </span>
+                </div>
+                <div class="text-[11px] text-slate-400 mt-0.5 line-clamp-1" :title="project.description">
+                  {{ project.description || 'Tidak ada deskripsi khusus.' }}
+                </div>
+                <div class="text-[10px] text-slate-500 font-mono mt-1">
+                  Dibuat: {{ formatDate(project.created_at) }}
+                </div>
+              </td>
+
+              <!-- Status & Keamanan -->
+              <td class="px-4 py-3.5 align-top">
+                <div
+                  class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border font-mono"
+                  :class="project.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25' : 'bg-rose-500/10 text-rose-400 border-rose-500/25'"
+                >
+                  <span class="w-1.5 h-1.5 rounded-full" :class="project.status === 'active' ? 'bg-emerald-400' : 'bg-rose-400'"></span>
+                  <span>{{ project.status }}</span>
+                </div>
+                <div class="flex items-center gap-1 text-[10px] text-slate-400 mt-1 font-mono">
+                  <ShieldCheck class="w-3 h-3 text-purple-400 shrink-0" />
+                  <span>Multi-Tenant</span>
+                </div>
+              </td>
+
+              <!-- Alokasi Hardware & Kuota -->
+              <td class="px-4 py-3.5 align-top">
+                <div class="flex items-center justify-between text-xs mb-1">
+                  <span class="font-mono text-xs font-semibold" :class="getQuotaTextColor(project)">
+                    {{ project.printers_count }} / {{ project.max_printers }} Printer
+                  </span>
+                  <span class="text-[10px] font-mono text-slate-400">
+                    {{ Math.round((project.printers_count / project.max_printers) * 100) }}%
+                  </span>
+                </div>
+                <!-- Mini Progress Bar -->
+                <div class="w-full h-1.5 rounded-full bg-slate-900 border border-slate-800 overflow-hidden">
+                  <div
+                    class="h-full rounded-full transition-all duration-300"
+                    :class="getQuotaProgressColor(project)"
+                    :style="{ width: `${Math.min(100, Math.round((project.printers_count / project.max_printers) * 100))}%` }"
+                  ></div>
+                </div>
+
+                <!-- Hardware links -->
+                <div class="mt-1.5 flex items-center gap-2 flex-wrap">
+                  <button
+                    v-if="project.printers && project.printers.length > 0"
+                    @click="openPrintersDetailModal(project)"
+                    class="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer font-medium"
+                    title="Klik untuk detail printer fisik yang teralokasi"
+                  >
+                    <Printer class="w-3 h-3" />
+                    <span>{{ project.printers.length }} Printer Fisik</span>
+                  </button>
+                  <span v-else class="text-[10px] text-slate-500 italic">
+                    Belum ada printer
+                  </span>
+                </div>
+              </td>
+
+              <!-- Project API Key -->
+              <td class="px-4 py-3.5 align-top">
+                <div class="flex items-center gap-1">
+                  <span class="font-mono text-xs text-slate-200 select-all truncate bg-[#080c14] px-2 py-1 rounded border border-slate-800 max-w-[130px]">
+                    {{ visibleKeys[project.id] ? project.api_key : maskKey(project.api_key) }}
+                  </span>
+                  <button
+                    @click="toggleKeyVisibility(project.id)"
+                    class="p-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                    :title="visibleKeys[project.id] ? 'Sembunyikan' : 'Intip Key'"
+                  >
+                    <EyeOff v-if="visibleKeys[project.id]" class="w-3.5 h-3.5" />
+                    <Eye v-else class="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    @click="copyKey(project.api_key)"
+                    class="p-1 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-indigo-300 cursor-pointer"
+                    title="Salin Key"
+                  >
+                    <Copy class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div class="text-[10px] text-slate-500 font-mono mt-0.5">
+                  header: <code class="text-indigo-400 font-semibold">X-Project-Key</code>
+                </div>
+              </td>
+
+              <!-- Aksi (Matched with Queues and Clients) -->
+              <td class="px-4 py-3.5 align-top text-right whitespace-nowrap">
+                <div class="flex items-center justify-end gap-1.5">
+                  <button
+                    v-if="project.printers_count < project.max_printers"
+                    @click="openAssignModal(project)"
+                    class="px-2 py-1 rounded-lg bg-indigo-950/40 hover:bg-indigo-900/60 border border-indigo-800/40 text-xs text-indigo-300 hover:text-indigo-200 transition-colors inline-flex items-center gap-1 cursor-pointer font-medium"
+                    title="Alokasikan Printer Fisik"
+                  >
+                    <Plus class="w-3.5 h-3.5" />
+                    <span>Alokasi</span>
+                  </button>
+                  <button
+                    @click="openEditModal(project)"
+                    class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 hover:text-white transition-colors inline-flex items-center gap-1 cursor-pointer font-medium"
+                    title="Edit Project"
+                  >
+                    <Edit3 class="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    @click="confirmRegenerateKey(project)"
+                    class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-amber-400 hover:text-amber-300 transition-colors inline-flex items-center gap-1 cursor-pointer font-medium"
+                    title="Generate API Key Baru"
+                  >
+                    <Key class="w-3.5 h-3.5 text-amber-400" />
+                    <span>New Key</span>
+                  </button>
+                  <button
+                    @click="deleteProject(project)"
+                    class="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-950/50 border border-slate-800 hover:border-rose-900/50 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+                    title="Hapus Project"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile Project Cards (< md) -->
+      <div class="md:hidden divide-y divide-slate-800/60">
+        <div v-if="loading && projects.length === 0" class="p-8 text-center text-slate-400">
+          <RefreshCw class="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-400" />
+          <span class="text-xs">Memuat data project...</span>
+        </div>
+
+        <div v-else-if="filteredProjects.length === 0" class="p-8 text-center text-slate-400">
+          <FolderGit2 class="w-8 h-8 mx-auto mb-2 text-slate-500" />
+          <p class="font-medium text-slate-300 text-xs">Tidak ada project yang cocok.</p>
+        </div>
+
+        <div
+          v-for="project in filteredProjects"
+          :key="project.id"
+          class="p-4 space-y-3 bg-slate-900/40"
+        >
+          <div class="flex items-start justify-between gap-2">
+            <div>
+              <div class="font-bold text-white text-sm">{{ project.name }}</div>
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <span class="badge-indigo font-mono text-[10px]">{{ project.code }}</span>
                 <span
-                  class="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
-                  :class="project.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25' : 'bg-rose-500/10 text-rose-400 border border-rose-500/25'"
+                  class="text-[9px] font-mono font-bold uppercase px-1.5 py-0.2 rounded"
+                  :class="project.status === 'active' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'"
                 >
                   {{ project.status }}
                 </span>
               </div>
-              <p class="text-xs text-slate-400 leading-relaxed line-clamp-2">
-                {{ project.description || 'Tidak ada deskripsi khusus.' }}
-              </p>
             </div>
-
-            <!-- Project Actions -->
-            <div class="flex items-center gap-1.5 shrink-0">
+            <div class="flex items-center gap-1">
               <button
                 @click="openEditModal(project)"
-                class="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-                title="Edit Project"
+                class="p-1 rounded-lg bg-slate-800 text-slate-300"
               >
                 <Edit3 class="w-3.5 h-3.5" />
               </button>
               <button
                 @click="deleteProject(project)"
-                class="p-1.5 rounded-lg bg-rose-950/30 border border-rose-800/40 text-rose-400 hover:bg-rose-900/50 transition-colors cursor-pointer"
-                title="Hapus Project"
+                class="p-1 rounded-lg bg-slate-800 text-rose-400"
               >
                 <Trash2 class="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
 
-          <!-- Project API Key Display -->
-          <div class="mt-4 p-3 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
-            <div class="flex items-center justify-between text-[11px] text-slate-400">
-              <span class="font-medium flex items-center gap-1.5">
-                <Key class="w-3.5 h-3.5 text-amber-400" />
-                <span>Project API Key (<code class="text-indigo-300 font-mono">X-Project-Key</code>)</span>
-              </span>
-              <button
-                @click="confirmRegenerateKey(project)"
-                class="text-[10px] text-amber-400 hover:text-amber-300 underline cursor-pointer font-mono"
-              >
-                Regenerate
-              </button>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="font-mono text-xs text-slate-200 select-all flex-1 truncate bg-[#080c14] px-2 py-1 rounded border border-slate-800">
-                {{ visibleKeys[project.id] ? project.api_key : maskKey(project.api_key) }}
-              </span>
-              <button
-                @click="toggleKeyVisibility(project.id)"
-                class="text-slate-400 hover:text-slate-200 p-1 cursor-pointer"
-                :title="visibleKeys[project.id] ? 'Sembunyikan' : 'Tampilkan'"
-              >
-                <EyeOff v-if="visibleKeys[project.id]" class="w-3.5 h-3.5" />
-                <Eye v-else class="w-3.5 h-3.5" />
-              </button>
-              <button
-                @click="copyKey(project.api_key)"
-                class="text-slate-400 hover:text-indigo-300 p-1 cursor-pointer"
-                title="Salin Key"
-              >
-                <Copy class="w-3.5 h-3.5" />
-              </button>
-            </div>
+          <div class="text-xs text-slate-400">
+            {{ project.description || 'Tidak ada deskripsi.' }}
           </div>
 
-          <!-- Quota Progress Indicator -->
-          <div class="mt-4 space-y-1.5">
+          <!-- Kuota Bar -->
+          <div class="space-y-1">
             <div class="flex items-center justify-between text-xs">
-              <span class="font-medium text-slate-300 flex items-center gap-1">
-                <Printer class="w-3.5 h-3.5 text-indigo-400" />
-                <span>Alokasi Printer Fisik</span>
-              </span>
-              <span class="font-bold font-mono text-xs" :class="getQuotaTextColor(project)">
-                {{ project.printers_count }} / {{ project.max_printers }} Printer
-                ({{ Math.round((project.printers_count / project.max_printers) * 100) }}%)
+              <span class="text-slate-400">Alokasi Printer:</span>
+              <span class="font-mono font-bold" :class="getQuotaTextColor(project)">
+                {{ project.printers_count }} / {{ project.max_printers }} ({{ Math.round((project.printers_count / project.max_printers) * 100) }}%)
               </span>
             </div>
-            <!-- Progress Bar -->
-            <div class="w-full h-2 rounded-full bg-slate-900 border border-slate-800 overflow-hidden">
+            <div class="w-full h-1.5 rounded-full bg-slate-900 border border-slate-800 overflow-hidden">
               <div
-                class="h-full rounded-full transition-all duration-300"
+                class="h-full rounded-full transition-all"
                 :class="getQuotaProgressColor(project)"
                 :style="{ width: `${Math.min(100, Math.round((project.printers_count / project.max_printers) * 100))}%` }"
               ></div>
             </div>
           </div>
 
-          <!-- Allocated Printers List -->
-          <div class="mt-4 space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                Hardware Terpetakan ({{ project.printers.length }})
-              </span>
+          <!-- API Key Mobile -->
+          <div class="flex items-center justify-between gap-2 p-2 rounded-lg bg-slate-900 border border-slate-800 text-xs">
+            <span class="font-mono text-[11px] truncate flex-1">
+              {{ visibleKeys[project.id] ? project.api_key : maskKey(project.api_key) }}
+            </span>
+            <div class="flex items-center gap-1 shrink-0">
+              <button @click="copyKey(project.api_key)" class="p-1 text-slate-400 hover:text-white">
+                <Copy class="w-3 h-3" />
+              </button>
+              <button @click="toggleKeyVisibility(project.id)" class="p-1 text-slate-400 hover:text-white">
+                <EyeOff v-if="visibleKeys[project.id]" class="w-3 h-3" />
+                <Eye v-else class="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+
+          <!-- Mobile Actions Bottom -->
+          <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/60">
+            <button
+              v-if="project.printers && project.printers.length"
+              @click="openPrintersDetailModal(project)"
+              class="text-xs text-indigo-400 flex items-center gap-1"
+            >
+              <Printer class="w-3.5 h-3.5" />
+              <span>{{ project.printers.length }} Hardware</span>
+            </button>
+            <div class="flex items-center gap-1.5 ml-auto">
               <button
                 v-if="project.printers_count < project.max_printers"
                 @click="openAssignModal(project)"
-                class="text-[11px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-semibold cursor-pointer"
+                class="px-2.5 py-1 rounded-lg bg-indigo-600 text-white text-xs font-medium"
               >
-                <Plus class="w-3 h-3" />
-                <span>Alokasikan Printer</span>
+                + Alokasi
               </button>
-              <span v-else class="text-[10px] text-amber-400 font-mono font-medium">
-                Kuota Penuh
-              </span>
-            </div>
-
-            <!-- Printer list inside card -->
-            <div v-if="project.printers.length === 0" class="p-3 rounded-xl border border-dashed border-slate-800 text-center text-xs text-slate-500">
-              Belum ada printer yang dialokasikan untuk project ini.
-            </div>
-
-            <div v-else class="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
-              <div
-                v-for="p in project.printers"
-                :key="p.id"
-                class="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 flex items-center justify-between gap-3 text-xs"
+              <button
+                @click="confirmRegenerateKey(project)"
+                class="px-2.5 py-1 rounded-lg bg-slate-800 text-amber-400 text-xs font-medium"
               >
-                <div class="flex items-center gap-2 min-w-0">
-                  <span class="relative flex h-2 w-2 shrink-0">
-                    <span
-                      v-if="p.is_online"
-                      class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"
-                    ></span>
-                    <span
-                      class="relative inline-flex rounded-full h-2 w-2"
-                      :class="p.is_online ? 'bg-emerald-500' : 'bg-slate-600'"
-                    ></span>
-                  </span>
-                  <div class="truncate">
-                    <span class="font-semibold text-slate-200">{{ p.name }}</span>
-                    <span class="text-slate-400 ml-1 font-mono text-[10px]">({{ p.slug }})</span>
-                  </div>
-                </div>
-
-                <div class="flex items-center gap-2 shrink-0">
-                  <span class="text-[10px] text-slate-400 font-mono hidden sm:inline">
-                    {{ p.ip_address || 'No IP' }}
-                  </span>
-                  <button
-                    @click="removePrinterFromProject(project, p)"
-                    class="p-1 rounded text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
-                    title="Lepaskan printer dari project ini"
-                  >
-                    <X class="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
+                New Key
+              </button>
             </div>
           </div>
-        </div>
-
-        <!-- Card Footer -->
-        <div class="mt-5 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[11px] text-slate-500">
-          <span>Dibuat: {{ formatDate(project.created_at) }}</span>
-          <span class="text-slate-400 font-mono">ID: {{ project.id.substring(0, 8) }}...</span>
         </div>
       </div>
     </div>
@@ -499,6 +630,93 @@
         </div>
       </div>
     </div>
+
+    <!-- Mapped Hardware / Printers Detail Modal -->
+    <div
+      v-if="selectedProjectForPrinters"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+      @click.self="selectedProjectForPrinters = null"
+    >
+      <div class="card-panel border border-slate-700/80 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 bg-[#0d1424]">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div>
+            <h3 class="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+              <Printer class="w-4 h-4 text-indigo-400" />
+              <span>Hardware Terpetakan: {{ selectedProjectForPrinters.name }}</span>
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Kode Tenant: <span class="text-indigo-400 font-mono font-bold">{{ selectedProjectForPrinters.code }}</span> • Kuota: {{ selectedProjectForPrinters.printers_count }} / {{ selectedProjectForPrinters.max_printers }} Printer
+            </p>
+          </div>
+          <button @click="selectedProjectForPrinters = null" class="text-slate-400 hover:text-white cursor-pointer">✕</button>
+        </div>
+
+        <div class="space-y-2.5 max-h-[350px] overflow-y-auto pr-1">
+          <div v-if="!selectedProjectForPrinters.printers || selectedProjectForPrinters.printers.length === 0" class="p-6 rounded-xl border border-dashed border-slate-800 text-center text-xs text-slate-400">
+            Belum ada printer fisik yang dialokasikan untuk project ini.
+          </div>
+
+          <div
+            v-for="p in selectedProjectForPrinters.printers"
+            :key="p.id"
+            class="p-3 rounded-xl border border-slate-800 bg-slate-900/60 flex items-center justify-between gap-3"
+          >
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="relative flex h-2.5 w-2.5 shrink-0">
+                <span
+                  v-if="p.is_online"
+                  class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"
+                ></span>
+                <span
+                  class="relative inline-flex rounded-full h-2.5 w-2.5"
+                  :class="p.is_online ? 'bg-emerald-500' : 'bg-slate-600'"
+                ></span>
+              </span>
+              <div class="min-w-0">
+                <div class="font-semibold text-slate-100 text-xs sm:text-sm truncate">{{ p.name }}</div>
+                <div class="text-[11px] text-slate-400 font-mono">
+                  <span>channel: printer.{{ p.slug }}</span>
+                  <span class="text-slate-600 mx-1.5">•</span>
+                  <span>{{ p.machine_name || 'No Machine' }}</span>
+                  <span class="text-slate-600 mx-1.5">•</span>
+                  <span>{{ p.ip_address || 'No IP' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              @click="removePrinterFromProject(selectedProjectForPrinters, p)"
+              class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-rose-950/60 border border-slate-800 hover:border-rose-800/60 text-slate-400 hover:text-rose-400 transition-colors text-xs inline-flex items-center gap-1 shrink-0 cursor-pointer"
+              title="Lepaskan printer ini dari project"
+            >
+              <X class="w-3.5 h-3.5" />
+              <span>Lepas</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="pt-3 border-t border-slate-800 flex items-center justify-between">
+          <button
+            v-if="selectedProjectForPrinters.printers_count < selectedProjectForPrinters.max_printers"
+            @click="openAssignFromDetailModal"
+            class="btn-primary text-xs"
+          >
+            <Plus class="w-3.5 h-3.5" />
+            <span>Alokasikan Printer</span>
+          </button>
+          <span v-else class="text-xs text-amber-400 font-mono">
+            Kuota Penuh ({{ selectedProjectForPrinters.max_printers }} Printer)
+          </span>
+
+          <button
+            @click="selectedProjectForPrinters = null"
+            class="btn-secondary ml-auto"
+          >
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -519,6 +737,7 @@ import {
   EyeOff,
   Copy,
   X,
+  Search,
 } from 'lucide-vue-next';
 import { useToast } from '../composables/useToast';
 
@@ -528,11 +747,14 @@ const saving = ref(false);
 const projects = ref([]);
 const allClients = ref([]);
 const visibleKeys = reactive({});
+const searchQuery = ref('');
+const statusFilter = ref('all');
 
 const showCreateModal = ref(false);
 const showEditModal = ref(false);
 const showAssignModal = ref(false);
 const selectedProject = ref(null);
+const selectedProjectForPrinters = ref(null);
 
 const createForm = reactive({
   name: '',
@@ -546,6 +768,25 @@ const editForm = reactive({
   max_printers: 2,
   status: 'active',
   description: '',
+});
+
+const filteredProjects = computed(() => {
+  return projects.value.filter((p) => {
+    // Status Filter
+    if (statusFilter.value !== 'all' && p.status !== statusFilter.value) {
+      return false;
+    }
+    // Search Query
+    if (searchQuery.value.trim()) {
+      const q = searchQuery.value.toLowerCase();
+      const matchName = p.name?.toLowerCase().includes(q);
+      const matchCode = p.code?.toLowerCase().includes(q);
+      const matchDesc = p.description?.toLowerCase().includes(q);
+      const matchKey = p.api_key?.toLowerCase().includes(q);
+      return matchName || matchCode || matchDesc || matchKey;
+    }
+    return true;
+  });
 });
 
 const totalAllocatedPrinters = computed(() => {
@@ -614,6 +855,10 @@ const fetchProjects = async (isManual = false) => {
     ]);
     if (resProj.data.success) {
       projects.value = resProj.data.data;
+      // If modal is open, refresh selected project
+      if (selectedProjectForPrinters.value) {
+        selectedProjectForPrinters.value = projects.value.find(p => p.id === selectedProjectForPrinters.value.id) || null;
+      }
     }
     if (resClients.data.success) {
       allClients.value = resClients.data.data;
@@ -715,6 +960,18 @@ const deleteProject = async (project) => {
 const openAssignModal = (project) => {
   selectedProject.value = project;
   showAssignModal.value = true;
+};
+
+const openPrintersDetailModal = (project) => {
+  selectedProjectForPrinters.value = project;
+};
+
+const openAssignFromDetailModal = () => {
+  if (selectedProjectForPrinters.value) {
+    selectedProject.value = selectedProjectForPrinters.value;
+    selectedProjectForPrinters.value = null;
+    showAssignModal.value = true;
+  }
 };
 
 const assignClientToProject = async (clientId) => {

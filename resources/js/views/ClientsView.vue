@@ -69,19 +69,20 @@
       </div>
     </div>
 
-    <!-- Client Table Container -->
+    <!-- Client Table Container (Zero Horizontal Scroll, 100% Responsive) -->
     <div class="card-panel rounded-2xl overflow-hidden shadow-xl">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left text-xs sm:text-sm text-slate-300 min-w-[900px]">
+      <!-- Desktop & Tablet Table (md and up) -->
+      <div class="hidden md:block">
+        <table class="w-full text-left text-xs sm:text-sm text-slate-300">
           <thead class="bg-slate-900/90 text-[11px] font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800">
             <tr>
-              <th class="px-5 py-3.5">Client & Channel</th>
-              <th class="px-5 py-3.5">Project / Unit</th>
-              <th class="px-5 py-3.5">Scope</th>
-              <th class="px-5 py-3.5">Status Online</th>
-              <th class="px-5 py-3.5">Hardware Info</th>
-              <th class="px-5 py-3.5">API Key</th>
-              <th class="px-5 py-3.5 text-right">Aksi</th>
+              <th class="px-4 py-3.5 w-[22%]">Client & Channel</th>
+              <th class="px-4 py-3.5 w-[16%]">Project / Unit</th>
+              <th class="px-4 py-3.5 w-[12%]">Scope</th>
+              <th class="px-4 py-3.5 w-[15%]">Status Online</th>
+              <th class="px-4 py-3.5 w-[17%]">Hardware Info</th>
+              <th class="px-4 py-3.5 w-[10%]">API Key</th>
+              <th class="px-4 py-3.5 text-right w-[8%]">Aksi</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-800/60 font-sans">
@@ -111,19 +112,19 @@
               class="hover:bg-slate-900/50 transition-colors duration-150 group"
             >
               <!-- Name & Slug -->
-              <td class="px-5 py-3.5">
-                <div class="font-bold text-white text-sm">{{ c.name }}</div>
-                <div class="text-[11px] text-slate-400 font-mono flex items-center gap-1 mt-0.5">
+              <td class="px-4 py-3.5">
+                <div class="font-bold text-white text-sm truncate" :title="c.name">{{ c.name }}</div>
+                <div class="text-[11px] text-slate-400 font-mono mt-0.5 truncate">
                   <span class="text-indigo-400 font-semibold">channel:</span>
                   <span>printer.{{ c.slug }}</span>
                 </div>
               </td>
 
               <!-- Project / Tenant Badge -->
-              <td class="px-5 py-3.5">
+              <td class="px-4 py-3.5">
                 <div v-if="c.project" class="badge-indigo font-mono text-[11px]">
-                  <FolderGit2 class="w-3 h-3 text-indigo-400" />
-                  <span>{{ c.project.code }}</span>
+                  <FolderGit2 class="w-3 h-3 text-indigo-400 shrink-0" />
+                  <span class="truncate">{{ c.project.code }}</span>
                 </div>
                 <span v-else class="text-xs text-slate-500 italic">
                   Belum Terhubung
@@ -131,7 +132,7 @@
               </td>
 
               <!-- Scope Badge -->
-              <td class="px-5 py-3.5">
+              <td class="px-4 py-3.5">
                 <span
                   class="text-[10px] font-semibold uppercase font-mono px-2 py-0.5 rounded-md inline-block"
                   :class="{
@@ -145,9 +146,9 @@
               </td>
 
               <!-- Online Status & Last Seen -->
-              <td class="px-5 py-3.5">
+              <td class="px-4 py-3.5">
                 <div class="flex items-center gap-2">
-                  <span class="relative flex h-2 w-2">
+                  <span class="relative flex h-2 w-2 shrink-0">
                     <span
                       v-if="c.is_online"
                       class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"
@@ -164,14 +165,14 @@
                     {{ c.is_online ? 'Online' : 'Offline' }}
                   </span>
                 </div>
-                <div class="text-[10px] text-slate-500 mt-0.5 font-mono">
+                <div class="text-[10px] text-slate-500 mt-0.5 font-mono truncate">
                   {{ c.last_seen_at ? c.last_seen_at : 'Belum pernah ping' }}
                 </div>
               </td>
 
               <!-- Hardware Info -->
-              <td class="px-5 py-3.5">
-                <div class="text-xs text-slate-300 font-mono">
+              <td class="px-4 py-3.5">
+                <div class="text-xs text-slate-300 font-mono truncate">
                   <div>{{ c.machine_name || 'No Machine' }}</div>
                   <div class="text-slate-500 text-[11px]">{{ c.ip_address || 'No IP' }}</div>
                 </div>
@@ -186,51 +187,107 @@
               </td>
 
               <!-- API Key -->
-              <td class="px-5 py-3.5">
-                <div class="flex items-center gap-1.5">
-                  <span class="font-mono text-xs bg-[#080c14] px-2 py-0.5 rounded border border-slate-800 select-all max-w-[140px] truncate text-slate-300">
-                    {{ visibleKeys[c.id] ? c.api_key : maskKey(c.api_key) }}
-                  </span>
-                  <button
-                    @click="toggleKeyVisibility(c.id)"
-                    class="text-slate-400 hover:text-slate-200 p-1 cursor-pointer"
-                    :title="visibleKeys[c.id] ? 'Sembunyikan' : 'Tampilkan'"
-                  >
-                    <EyeOff v-if="visibleKeys[c.id]" class="w-3.5 h-3.5" />
-                    <Eye v-else class="w-3.5 h-3.5" />
-                  </button>
+              <td class="px-4 py-3.5">
+                <div class="flex items-center gap-1">
                   <button
                     @click="copyKey(c.api_key)"
-                    class="text-slate-400 hover:text-indigo-300 p-1 cursor-pointer"
+                    class="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-indigo-300 cursor-pointer"
                     title="Copy API Key"
                   >
                     <Copy class="w-3.5 h-3.5" />
                   </button>
+                  <button
+                    @click="toggleKeyVisibility(c.id)"
+                    class="p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white cursor-pointer"
+                    :title="visibleKeys[c.id] ? 'Sembunyikan' : 'Intip Key'"
+                  >
+                    <EyeOff v-if="visibleKeys[c.id]" class="w-3.5 h-3.5" />
+                    <Eye v-else class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div v-if="visibleKeys[c.id]" class="text-[10px] font-mono text-slate-300 mt-1 truncate select-all">
+                  {{ c.api_key }}
                 </div>
               </td>
 
               <!-- Actions -->
-              <td class="px-5 py-3.5 text-right space-x-1.5">
-                <button
-                  @click="confirmRegenerateKey(c)"
-                  class="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] text-amber-300 transition-colors font-medium cursor-pointer"
-                  title="Generate API Key Baru"
-                >
-                  New Key
-                </button>
-                <button
-                  @click="deleteClient(c)"
-                  class="px-2.5 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/40 text-[11px] text-rose-300 transition-colors font-medium cursor-pointer"
-                  title="Hapus Client"
-                >
-                  Delete
-                </button>
+              <td class="px-4 py-3.5 text-right whitespace-nowrap">
+                <div class="flex items-center justify-end gap-1.5">
+                  <button
+                    v-if="c.printers && c.printers.length"
+                    @click="openPrintersModal(c)"
+                    class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-slate-300 hover:text-white transition-colors inline-flex items-center gap-1 cursor-pointer font-medium"
+                    title="Periksa Printer Fisik"
+                  >
+                    <Printer class="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Printer</span>
+                  </button>
+                  <button
+                    @click="confirmRegenerateKey(c)"
+                    class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-xs text-amber-400 hover:text-amber-300 transition-colors inline-flex items-center gap-1 cursor-pointer font-medium"
+                    title="Generate API Key Baru"
+                  >
+                    <Key class="w-3.5 h-3.5 text-amber-400" />
+                    <span>New Key</span>
+                  </button>
+                  <button
+                    @click="deleteClient(c)"
+                    class="p-1.5 rounded-lg bg-slate-900 hover:bg-rose-950/50 border border-slate-800 hover:border-rose-900/50 text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
+                    title="Hapus Client"
+                  >
+                    <Trash2 class="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
+
+      <!-- Mobile Client Cards (< md) -->
+      <div class="md:hidden divide-y divide-slate-800/60">
+        <div
+          v-for="c in filteredClients"
+          :key="c.id"
+          class="p-4 space-y-3 bg-slate-900/40"
+        >
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-bold text-white text-sm">{{ c.name }}</div>
+              <div class="text-[11px] font-mono text-indigo-400">printer.{{ c.slug }}</div>
+            </div>
+            <span
+              class="px-2 py-0.5 rounded text-[10px] font-mono uppercase font-bold"
+              :class="c.is_online ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-400'"
+            >
+              {{ c.is_online ? 'Online' : 'Offline' }}
+            </span>
+          </div>
+
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span v-if="c.project" class="badge-indigo font-mono text-[10px]">{{ c.project.code }}</span>
+            <span v-else class="italic">Unassigned</span>
+            <span class="font-mono text-[11px]">{{ c.machine_name || 'No machine' }}</span>
+          </div>
+
+          <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+            <button
+              @click="copyKey(c.api_key)"
+              class="px-3 py-1 rounded-lg bg-slate-800 text-xs text-slate-200"
+            >
+              Copy Key
+            </button>
+            <button
+              @click="confirmRegenerateKey(c)"
+              class="px-3 py-1 rounded-lg bg-slate-800 text-xs text-amber-400"
+            >
+              New Key
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
+
 
     <!-- Create Client Modal -->
     <div
@@ -377,7 +434,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
 import axios from 'axios';
-import { Plus, RefreshCw, Cpu, Printer, Eye, EyeOff, Copy, FolderGit2, Search } from 'lucide-vue-next';
+import { Plus, RefreshCw, Cpu, Printer, Eye, EyeOff, Copy, FolderGit2, Search, Key, Trash2 } from 'lucide-vue-next';
 import { useToast } from '../composables/useToast';
 
 const toast = useToast();
