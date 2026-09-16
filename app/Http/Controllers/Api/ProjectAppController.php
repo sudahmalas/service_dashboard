@@ -44,6 +44,8 @@ class ProjectAppController extends Controller
                     'last_seen_at' => $p->last_seen_at?->diffForHumans() ?? 'Offline',
                     'machine_name' => $p->machine_name,
                     'ip_address' => $p->ip_address,
+                    'mac_address' => $p->mac_address,
+                    'printers' => $p->printers,
                     'os_printers' => $p->printers,
                 ];
             }),
