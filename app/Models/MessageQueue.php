@@ -12,6 +12,7 @@ class MessageQueue extends Model
     use HasFactory, HasUuids;
 
     protected $fillable = [
+        'project_client_id',
         'client_id',
         'type',
         'payload',
@@ -28,7 +29,15 @@ class MessageQueue extends Model
     ];
 
     /**
-     * Relationship: message belongs to a client.
+     * Relationship: message belongs to an optional project tenant.
+     */
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(ProjectClient::class, 'project_client_id');
+    }
+
+    /**
+     * Relationship: message belongs to an optional hardware client.
      */
     public function client(): BelongsTo
     {

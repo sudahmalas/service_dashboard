@@ -237,13 +237,13 @@
 
               <!-- Project / Tenant Column -->
               <td class="px-4 py-3.5 align-top">
-                <div v-if="q.client?.project" class="space-y-0.5">
+                <div v-if="q.project || q.client?.project" class="space-y-0.5">
                   <span class="badge-indigo font-mono text-[10px]">
                     <FolderGit2 class="w-2.5 h-2.5 text-indigo-400 shrink-0" />
-                    {{ q.client.project.code }}
+                    {{ (q.project || q.client.project).code }}
                   </span>
-                  <p class="text-xs font-semibold text-white truncate" :title="q.client.project.name">
-                    {{ q.client.project.name }}
+                  <p class="text-xs font-semibold text-white truncate" :title="(q.project || q.client.project).name">
+                    {{ (q.project || q.client.project).name }}
                   </p>
                 </div>
                 <div v-else class="text-xs text-slate-500 italic">
@@ -251,17 +251,33 @@
                 </div>
               </td>
 
-              <!-- Target Client -->
+              <!-- Target Client / Node -->
               <td class="px-4 py-3.5 align-top">
-                <div class="font-bold text-white text-xs truncate" :title="q.client?.name">
-                  {{ q.client?.name || 'Unknown Client' }}
+                <div v-if="q.client">
+                  <div class="font-bold text-white text-xs truncate" :title="q.client.name">
+                    {{ q.client.name }}
+                  </div>
+                  <div class="text-[11px] text-slate-400 mt-0.5 font-mono truncate">
+                    <span>{{ q.client.machine_name || 'PC Client' }}</span>
+                    <span v-if="q.client.ip_address" class="text-slate-500 ml-1">({{ q.client.ip_address }})</span>
+                  </div>
+                  <div class="text-[10px] text-indigo-400/80 font-mono mt-0.5 truncate">
+                    printer.{{ q.client.slug }}
+                  </div>
                 </div>
-                <div class="text-[11px] text-slate-400 mt-0.5 font-mono truncate">
-                  <span>{{ q.client?.machine_name || 'PC Client' }}</span>
-                  <span v-if="q.client?.ip_address" class="text-slate-500 ml-1">({{ q.client.ip_address }})</span>
+                <div v-else-if="q.type === 'form_submission'">
+                  <div class="font-bold text-indigo-300 text-xs truncate">
+                    {{ q.payload?.performer_name || 'Teknisi Lapangan' }}
+                  </div>
+                  <div class="text-[11px] text-slate-400 mt-0.5 font-mono truncate">
+                    <span>Target: {{ q.payload?.item_title || q.payload?.identifier || 'Alat Medis' }}</span>
+                  </div>
+                  <div class="text-[10px] text-emerald-400 font-mono mt-0.5 truncate">
+                    {{ q.payload?.job_type || 'maintenance' }} • {{ q.payload?.operational_status || 'siap pakai' }}
+                  </div>
                 </div>
-                <div class="text-[10px] text-indigo-400/80 font-mono mt-0.5 truncate">
-                  printer.{{ q.client?.slug || 'unknown' }}
+                <div v-else class="text-xs text-slate-500 italic">
+                  <span>Semua Node / Broadcast</span>
                 </div>
               </td>
 
@@ -394,13 +410,17 @@
 
           <!-- Project & Target -->
           <div class="text-xs space-y-1">
-            <div v-if="q.client?.project" class="flex items-center gap-1.5">
-              <span class="badge-indigo font-mono text-[9px]">{{ q.client.project.code }}</span>
-              <span class="text-slate-300 font-semibold truncate">{{ q.client.project.name }}</span>
+            <div v-if="q.project || q.client?.project" class="flex items-center gap-1.5">
+              <span class="badge-indigo font-mono text-[9px]">{{ (q.project || q.client.project).code }}</span>
+              <span class="text-slate-300 font-semibold truncate">{{ (q.project || q.client.project).name }}</span>
             </div>
-            <div class="text-slate-400 font-mono text-[11px]">
-              Target: <span class="text-white font-semibold">{{ q.client?.name || 'Unknown' }}</span>
-              <span v-if="q.client?.machine_name"> ({{ q.client.machine_name }})</span>
+            <div v-if="q.client" class="text-slate-400 font-mono text-[11px]">
+              Target: <span class="text-white font-semibold">{{ q.client.name }}</span>
+              <span v-if="q.client.machine_name"> ({{ q.client.machine_name }})</span>
+            </div>
+            <div v-else-if="q.type === 'form_submission'" class="text-slate-400 font-mono text-[11px]">
+              Teknisi: <span class="text-indigo-300 font-semibold">{{ q.payload?.performer_name || 'Teknisi' }}</span>
+              <span class="text-slate-500"> • {{ q.payload?.item_title }}</span>
             </div>
           </div>
 

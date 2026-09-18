@@ -16,17 +16,20 @@ class QueueAdminController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = MessageQueue::with(['client.project'])->orderBy('created_at', 'desc');
+        $query = MessageQueue::with(['client.project', 'project'])->orderBy('created_at', 'desc');
 
         if ($request->filled('project_id')) {
             $projectId = $request->input('project_id');
             if ($projectId === 'none') {
-                $query->whereHas('client', function ($q) {
-                    $q->whereNull('project_client_id');
-                });
+                $query->whereNull('project_client_id')
+                    ->where(function ($q) {
+                        $q->whereNull('client_id')
+                          ->orWhereHas('client', fn($cq) => $cq->whereNull('project_client_id'));
+                    });
             } else {
-                $query->whereHas('client', function ($q) use ($projectId) {
-                    $q->where('project_client_id', $projectId);
+                $query->where(function ($q) use ($projectId) {
+                    $q->where('project_client_id', $projectId)
+                      ->orWhereHas('client', fn($cq) => $cq->where('project_client_id', $projectId));
                 });
             }
         }
@@ -47,6 +50,10 @@ class QueueAdminController extends Controller
             $search = trim($request->input('search'));
             $query->where(function ($q) use ($search) {
                 $q->where('id', 'like', "%{$search}%")
+                    ->orWhereHas('project', function ($pq) use ($search) {
+                        $pq->where('name', 'like', "%{$search}%")
+                            ->orWhere('code', 'like', "%{$search}%");
+                    })
                     ->orWhereHas('client', function ($cq) use ($search) {
                         $cq->where('name', 'like', "%{$search}%")
                             ->orWhere('slug', 'like', "%{$search}%")

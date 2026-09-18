@@ -10,6 +10,9 @@ use App\Http\Controllers\Api\ProjectAppController;
 use App\Http\Controllers\Api\QueueAdminController;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\Api\ProjectSnapshotController;
+use App\Http\Controllers\Api\PublicPortalController;
+
 /*
 |--------------------------------------------------------------------------
 | WebHost API Routes
@@ -21,9 +24,18 @@ Route::prefix('v1')->group(function () {
     // Ingestion endpoint (Supports optional X-Project-Key for tenant isolation)
     Route::post('/relay/dispatch', [IngestController::class, 'dispatch']);
 
+    // Public Portal endpoints (Scan QR from smartphone without auth)
+    Route::prefix('public')->group(function () {
+        Route::get('/item/{identifier}', [PublicPortalController::class, 'getItem']);
+        Route::post('/maintenance/submit', [PublicPortalController::class, 'submitMaintenance']);
+    });
+
     // Endpoints for Prima applications authenticated with Project API Key
     Route::middleware('auth.project_key')->prefix('project')->group(function () {
         Route::get('/printers', [ProjectAppController::class, 'printers']);
+        Route::post('/items/sync', [ProjectSnapshotController::class, 'sync']);
+        Route::get('/queues/form-submissions', [ProjectSnapshotController::class, 'getFormSubmissions']);
+        Route::post('/queues/{id}/ack', [ProjectSnapshotController::class, 'ackFormSubmission']);
     });
 
     // Endpoints for authenticated connected clients (PrinterService)

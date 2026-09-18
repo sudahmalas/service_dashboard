@@ -41,6 +41,14 @@ class ProjectClient extends Model
     }
 
     /**
+     * Public item snapshots registered to this project.
+     */
+    public function itemSnapshots(): HasMany
+    {
+        return $this->hasMany(PublicItemSnapshot::class, 'project_client_id');
+    }
+
+    /**
      * Generate secure Project API Key with prefix proj_
      */
     public static function generateKey(): string

@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-[#080c14] text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white font-sans">
     <!-- Top Navigation Command Bar -->
-    <header class="sticky top-0 z-40 bg-[#080c14]/90 backdrop-blur-md border-b border-slate-800/80">
+    <header v-if="!$route.meta.isPublic" class="sticky top-0 z-40 bg-[#080c14]/90 backdrop-blur-md border-b border-slate-800/80">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
           <!-- Brand / Logo Lockup -->
@@ -174,7 +174,7 @@
     </main>
 
     <!-- Minimalist Anti-Slop Footer -->
-    <footer class="border-t border-slate-800/80 py-4 text-xs text-slate-500 bg-[#080c14]">
+    <footer v-if="!$route.meta.isPublic" class="border-t border-slate-800/80 py-4 text-xs text-slate-500 bg-[#080c14]">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3">
         <div class="flex items-center gap-2 font-mono text-[11px]">
           <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>

@@ -18,6 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'auth.project_key' => \App\Http\Middleware\AuthenticateProjectKey::class,
         ]);
 
+        $middleware->trustProxies(at: '*');
+
         $middleware->validateCsrfTokens(except: [
             'api/*',
             'broadcasting/auth',
